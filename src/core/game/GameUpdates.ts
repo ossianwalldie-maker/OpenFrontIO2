@@ -190,6 +190,45 @@ export interface PlayerUpdate {
   betrayals: number;
   lastDeleteUnitTick: Tick;
   isLobbyCreator: boolean;
+  diplomacy?: DiplomacyPlayerView;
+}
+
+export interface DiplomacyFactionView {
+  id: string;
+  name: string;
+  leaderID: PlayerID;
+  members: PlayerID[];
+}
+
+export interface DiplomacyGuaranteeView {
+  guarantorID: PlayerID;
+  beneficiaryID: PlayerID;
+  expiresAt: Tick;
+  condition: "if_attacked";
+}
+
+export interface NonAggressionPactView {
+  playerA: PlayerID;
+  playerB: PlayerID;
+  expiresAt: Tick;
+}
+
+export interface WarGoalProgressView {
+  targetID: PlayerID;
+  justification: string;
+  progressTicks: Tick;
+  generatedAt: Tick;
+  justifiedAt?: Tick;
+}
+
+export interface DiplomacyPlayerView {
+  globalTension: number;
+  factionID?: string;
+  factionInvites: string[];
+  guarantees: DiplomacyGuaranteeView[];
+  pacts: NonAggressionPactView[];
+  warGoals: WarGoalProgressView[];
+  factions: DiplomacyFactionView[];
 }
 
 export interface AllianceView {

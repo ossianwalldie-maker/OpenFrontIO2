@@ -1,5 +1,6 @@
 import { placeName } from "../client/graphics/NameBoxCalculator";
 import { getGameLogicConfig } from "./configuration/ConfigLoader";
+import { DiplomacyTickExecution } from "./execution/diplomacy/DiplomacyTickExecution";
 import { Executor } from "./execution/ExecutionManager";
 import { RecomputeRailClusterExecution } from "./execution/RecomputeRailClusterExecution";
 import { WinCheckExecution } from "./execution/WinCheckExecution";
@@ -95,6 +96,7 @@ export class GameRunner {
   ) {}
 
   init() {
+    this.game.addExecution(new DiplomacyTickExecution());
     if (this.game.config().isRandomSpawn()) {
       this.game.addExecution(...this.execManager.spawnPlayers());
     }

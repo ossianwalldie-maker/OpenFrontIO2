@@ -174,6 +174,28 @@ export class SendKickPlayerIntentEvent implements GameEvent {
 export class SendUpdateGameConfigIntentEvent implements GameEvent {
   constructor(public readonly config: Partial<GameConfig>) {}
 }
+export class SendCreateFactionIntentEvent implements GameEvent {
+  constructor(public readonly name: string) {}
+}
+export class SendInviteToFactionIntentEvent implements GameEvent {
+  constructor(public readonly recipient: PlayerView) {}
+}
+export class SendJoinFactionIntentEvent implements GameEvent {
+  constructor(public readonly leader: PlayerView) {}
+}
+export class SendLeaveFactionIntentEvent implements GameEvent {}
+export class SendProposeGuaranteeIntentEvent implements GameEvent {
+  constructor(public readonly recipient: PlayerView) {}
+}
+export class SendRevokeGuaranteeIntentEvent implements GameEvent {
+  constructor(public readonly recipient: PlayerView) {}
+}
+export class SendProposeNAPIntentEvent implements GameEvent {
+  constructor(public readonly recipient: PlayerView) {}
+}
+export class SendCancelNAPIntentEvent implements GameEvent {
+  constructor(public readonly recipient: PlayerView) {}
+}
 
 export class SendCreateBattlePlanIntentEvent implements GameEvent {
   constructor(
@@ -289,6 +311,44 @@ export class Transport {
     this.eventBus.on(SendUpdateGameConfigIntentEvent, (e) =>
       this.onSendUpdateGameConfigIntent(e),
     );
+    this.eventBus.on(SendCreateFactionIntentEvent, (e) =>
+      this.sendIntent({ type: "create_faction", name: e.name }),
+    );
+    this.eventBus.on(SendInviteToFactionIntentEvent, (e) =>
+      this.sendIntent({
+        type: "invite_to_faction",
+        recipient: e.recipient.id(),
+      }),
+    );
+    this.eventBus.on(SendJoinFactionIntentEvent, (e) =>
+      this.sendIntent({ type: "join_faction", leader: e.leader.id() }),
+    );
+    this.eventBus.on(SendLeaveFactionIntentEvent, () =>
+      this.sendIntent({ type: "leave_faction" }),
+    );
+    this.eventBus.on(SendProposeGuaranteeIntentEvent, (e) =>
+      this.sendIntent({
+        type: "propose_guarantee",
+        recipient: e.recipient.id(),
+      }),
+    );
+    this.eventBus.on(SendRevokeGuaranteeIntentEvent, (e) =>
+      this.sendIntent({
+        type: "revoke_guarantee",
+        recipient: e.recipient.id(),
+      }),
+    );
+    this.eventBus.on(SendProposeNAPIntentEvent, (e) =>
+      this.sendIntent({
+        type: "propose_non_aggression_pact",
+        recipient: e.recipient.id(),
+      }),
+    );
+    this.eventBus.on(SendCancelNAPIntentEvent, (e) =>
+      this.sendIntent({
+        type: "cancel_non_aggression_pact",
+        recipient: e.recipient.id(),
+      }),
     this.eventBus.on(SendCreateBattlePlanIntentEvent, (e) =>
       this.onSendCreateBattlePlanIntent(e),
     );

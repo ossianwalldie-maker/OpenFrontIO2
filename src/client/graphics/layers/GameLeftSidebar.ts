@@ -16,6 +16,7 @@ const leaderboardRegularIcon = assetUrl(
 const leaderboardSolidIcon = assetUrl("images/LeaderboardIconSolidWhite.svg");
 const teamRegularIcon = assetUrl("images/TeamIconRegularWhite.svg");
 const teamSolidIcon = assetUrl("images/TeamIconSolidWhite.svg");
+const diplomacyIcon = assetUrl("images/AllianceIconWhite.svg");
 
 @customElement("game-left-sidebar")
 export class GameLeftSidebar extends LitElement implements Layer {
@@ -25,6 +26,8 @@ export class GameLeftSidebar extends LitElement implements Layer {
   private isTeamLeaderboardShow = false;
   @state()
   private isVisible = false;
+  @state()
+  private isDiplomacyShow = false;
   @state()
   private isPlayerTeamLabelVisible = false;
   @state()
@@ -171,6 +174,14 @@ export class GameLeftSidebar extends LitElement implements Layer {
                 </div>
               `
             : null}
+          <div
+            class="cursor-pointer p-0.5 bg-gray-700/50 hover:bg-gray-600 border rounded-md border-slate-500 transition-colors"
+            @click=${() => (this.isDiplomacyShow = !this.isDiplomacyShow)}
+            role="button"
+            tabindex="0"
+          >
+            <img src=${diplomacyIcon} alt="Diplomacy" width="20" height="20" />
+          </div>
         </div>
         ${this.isPlayerTeamLabelVisible
           ? html`
@@ -197,6 +208,7 @@ export class GameLeftSidebar extends LitElement implements Layer {
             class="flex-1"
             .visible=${this.isTeamLeaderboardShow && this.isTeamGame}
           ></team-stats>
+          <diplomacy-panel .visible=${this.isDiplomacyShow}></diplomacy-panel>
         </div>
         <slot></slot>
       </aside>

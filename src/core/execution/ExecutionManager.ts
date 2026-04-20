@@ -10,6 +10,7 @@ import { AttackExecution } from "./AttackExecution";
 import { BoatRetreatExecution } from "./BoatRetreatExecution";
 import { ConstructionExecution } from "./ConstructionExecution";
 import { DeleteUnitExecution } from "./DeleteUnitExecution";
+import { DiplomacyIntentExecution } from "./diplomacy/DiplomacyIntentExecution";
 import { DonateGoldExecution } from "./DonateGoldExecution";
 import { DonateTroopsExecution } from "./DonateTroopExecution";
 import { EmbargoAllExecution } from "./EmbargoAllExecution";
@@ -121,6 +122,43 @@ export class Executor {
         return new MarkDisconnectedExecution(player, intent.isDisconnected);
       case "toggle_pause":
         return new PauseExecution(player, intent.paused);
+      case "create_faction":
+        return new DiplomacyIntentExecution(player, {
+          type: "create_faction",
+          name: intent.name,
+        });
+      case "invite_to_faction":
+        return new DiplomacyIntentExecution(player, {
+          type: "invite_to_faction",
+          recipientID: intent.recipient,
+        });
+      case "join_faction":
+        return new DiplomacyIntentExecution(player, {
+          type: "join_faction",
+          leaderID: intent.leader,
+        });
+      case "leave_faction":
+        return new DiplomacyIntentExecution(player, { type: "leave_faction" });
+      case "propose_guarantee":
+        return new DiplomacyIntentExecution(player, {
+          type: "propose_guarantee",
+          recipientID: intent.recipient,
+        });
+      case "revoke_guarantee":
+        return new DiplomacyIntentExecution(player, {
+          type: "revoke_guarantee",
+          recipientID: intent.recipient,
+        });
+      case "propose_non_aggression_pact":
+        return new DiplomacyIntentExecution(player, {
+          type: "propose_non_aggression_pact",
+          recipientID: intent.recipient,
+        });
+      case "cancel_non_aggression_pact":
+        return new DiplomacyIntentExecution(player, {
+          type: "cancel_non_aggression_pact",
+          recipientID: intent.recipient,
+        });
       case "create_battle_plan":
       case "update_battle_plan":
       case "execute_battle_plan":

@@ -51,6 +51,14 @@ export type Intent =
   | KickPlayerIntent
   | TogglePauseIntent
   | UpdateGameConfigIntent
+  | CreateFactionIntent
+  | InviteToFactionIntent
+  | JoinFactionIntent
+  | LeaveFactionIntent
+  | ProposeGuaranteeIntent
+  | RevokeGuaranteeIntent
+  | ProposeNonAggressionPactIntent
+  | CancelNonAggressionPactIntent;
   | CreateBattlePlanIntent
   | UpdateBattlePlanIntent
   | ExecuteBattlePlanIntent;
@@ -86,6 +94,20 @@ export type KickPlayerIntent = z.infer<typeof KickPlayerIntentSchema>;
 export type TogglePauseIntent = z.infer<typeof TogglePauseIntentSchema>;
 export type UpdateGameConfigIntent = z.infer<
   typeof UpdateGameConfigIntentSchema
+>;
+export type CreateFactionIntent = z.infer<typeof CreateFactionIntentSchema>;
+export type InviteToFactionIntent = z.infer<typeof InviteToFactionIntentSchema>;
+export type JoinFactionIntent = z.infer<typeof JoinFactionIntentSchema>;
+export type LeaveFactionIntent = z.infer<typeof LeaveFactionIntentSchema>;
+export type ProposeGuaranteeIntent = z.infer<
+  typeof ProposeGuaranteeIntentSchema
+>;
+export type RevokeGuaranteeIntent = z.infer<typeof RevokeGuaranteeIntentSchema>;
+export type ProposeNonAggressionPactIntent = z.infer<
+  typeof ProposeNonAggressionPactIntentSchema
+>;
+export type CancelNonAggressionPactIntent = z.infer<
+  typeof CancelNonAggressionPactIntentSchema
 >;
 export type CreateBattlePlanIntent = z.infer<
   typeof CreateBattlePlanIntentSchema
@@ -285,6 +307,20 @@ export const GameConfigSchema = z.object({
         .optional(),
     })
     .optional(),
+  diplomacy: z
+    .object({
+      warGoalGenerationTicks: z.number().int().min(10).max(12000).optional(),
+      warGoalJustificationTicks: z.number().int().min(10).max(24000).optional(),
+      globalTensionDecayPerTick: z.number().min(0).max(1).optional(),
+      guaranteeDurationTicks: z.number().int().min(10).max(24000).optional(),
+      nonAggressionDurationTicks: z
+        .number()
+        .int()
+        .min(10)
+        .max(24000)
+        .optional(),
+    })
+    .optional(),
 });
 
 export const TeamSchema = z.string();
@@ -466,6 +502,43 @@ export const UpdateGameConfigIntentSchema = z.object({
   config: GameConfigSchema.partial(),
 });
 
+export const CreateFactionIntentSchema = z.object({
+  type: z.literal("create_faction"),
+  name: SafeString.min(2).max(32),
+});
+
+export const InviteToFactionIntentSchema = z.object({
+  type: z.literal("invite_to_faction"),
+  recipient: ID,
+});
+
+export const JoinFactionIntentSchema = z.object({
+  type: z.literal("join_faction"),
+  leader: ID,
+});
+
+export const LeaveFactionIntentSchema = z.object({
+  type: z.literal("leave_faction"),
+});
+
+export const ProposeGuaranteeIntentSchema = z.object({
+  type: z.literal("propose_guarantee"),
+  recipient: ID,
+});
+
+export const RevokeGuaranteeIntentSchema = z.object({
+  type: z.literal("revoke_guarantee"),
+  recipient: ID,
+});
+
+export const ProposeNonAggressionPactIntentSchema = z.object({
+  type: z.literal("propose_non_aggression_pact"),
+  recipient: ID,
+});
+
+export const CancelNonAggressionPactIntentSchema = z.object({
+  type: z.literal("cancel_non_aggression_pact"),
+  recipient: ID,
 export const StanceSchema = z.enum(["aggressive", "balanced", "cautious"]);
 
 const BattlePlanPayloadSchema = z.object({
@@ -516,6 +589,14 @@ const IntentSchema = z.discriminatedUnion("type", [
   KickPlayerIntentSchema,
   TogglePauseIntentSchema,
   UpdateGameConfigIntentSchema,
+  CreateFactionIntentSchema,
+  InviteToFactionIntentSchema,
+  JoinFactionIntentSchema,
+  LeaveFactionIntentSchema,
+  ProposeGuaranteeIntentSchema,
+  RevokeGuaranteeIntentSchema,
+  ProposeNonAggressionPactIntentSchema,
+  CancelNonAggressionPactIntentSchema,
   CreateBattlePlanIntentSchema,
   UpdateBattlePlanIntentSchema,
   ExecuteBattlePlanIntentSchema,

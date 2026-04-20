@@ -14,6 +14,7 @@ import { ChatDisplay } from "./layers/ChatDisplay";
 import { ChatModal } from "./layers/ChatModal";
 import { ControlPanel } from "./layers/ControlPanel";
 import { CoordinateGridLayer } from "./layers/CoordinateGridLayer";
+import { DiplomacyPanel } from "./layers/DiplomacyPanel";
 import { DynamicUILayer } from "./layers/DynamicUILayer";
 import { EmojiTable } from "./layers/EmojiTable";
 import { EventsDisplay } from "./layers/EventsDisplay";
@@ -105,6 +106,16 @@ export function createRenderer(
   }
   gameLeftSidebar.game = game;
   gameLeftSidebar.eventBus = eventBus;
+
+  const diplomacyPanel = document.querySelector(
+    "diplomacy-panel",
+  ) as DiplomacyPanel;
+  if (!(diplomacyPanel instanceof DiplomacyPanel)) {
+    console.error("diplomacy panel not found");
+  } else {
+    diplomacyPanel.game = game;
+    diplomacyPanel.eventBus = eventBus;
+  }
 
   const teamStats = document.querySelector("team-stats") as TeamStats;
   if (!teamStats || !(teamStats instanceof TeamStats)) {
