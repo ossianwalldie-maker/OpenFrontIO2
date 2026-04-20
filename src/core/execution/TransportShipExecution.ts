@@ -173,7 +173,12 @@ export class TransportShipExecution implements Execution {
       this.active = false;
       return;
     }
-    if (ticks - this.lastMove < this.ticksPerMove) {
+    const supplyFactor = this.mg.playerSupplyFactor(this.attacker);
+    const effectiveTicksPerMove = Math.max(
+      1,
+      Math.ceil(this.ticksPerMove / supplyFactor),
+    );
+    if (ticks - this.lastMove < effectiveTicksPerMove) {
       return;
     }
     this.lastMove = ticks;

@@ -171,6 +171,14 @@ export class UserSettings {
     );
   }
 
+  supplyOverlay() {
+    return this.getBool("settings.supplyOverlay", false);
+  }
+
+  toggleSupplyOverlay() {
+    this.setBool("settings.supplyOverlay", !this.supplyOverlay());
+  }
+
   cursorCostLabel() {
     const legacy = this.getBool("settings.ghostPricePill", true);
     return this.getBool("settings.cursorCostLabel", legacy);

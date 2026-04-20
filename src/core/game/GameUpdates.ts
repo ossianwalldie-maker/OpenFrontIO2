@@ -65,6 +65,7 @@ export enum GameUpdateType {
   ConquestEvent,
   EmbargoEvent,
   GamePaused,
+  SupplySnapshot,
 }
 
 export type GameUpdate =
@@ -88,7 +89,8 @@ export type GameUpdate =
   | RailroadSnapUpdate
   | ConquestUpdate
   | EmbargoUpdate
-  | GamePausedUpdate;
+  | GamePausedUpdate
+  | SupplySnapshotUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -272,6 +274,13 @@ export interface HashUpdate {
   hash: number;
 }
 
+export interface SupplySnapshotUpdate {
+  type: GameUpdateType.SupplySnapshot;
+  tick: Tick;
+  values: Uint8Array;
+  playerAverage: Record<string, number>;
+  playerOutOfSupplyTiles: Record<string, number>;
+}
 export interface UnitIncomingUpdate {
   type: GameUpdateType.UnitIncoming;
   unitID: number;

@@ -39,6 +39,7 @@ import { SettingsModal } from "./layers/SettingsModal";
 import { SpawnTimer } from "./layers/SpawnTimer";
 import { StructureIconsLayer } from "./layers/StructureIconsLayer";
 import { StructureLayer } from "./layers/StructureLayer";
+import { SupplyOverlayLayer } from "./layers/SupplyOverlayLayer";
 import { TeamStats } from "./layers/TeamStats";
 import { TerrainLayer } from "./layers/TerrainLayer";
 import { TerritoryLayer } from "./layers/TerritoryLayer";
@@ -275,6 +276,7 @@ export function createRenderer(
     new TerrainLayer(game, transformHandler),
     new TerritoryLayer(game, eventBus, transformHandler),
     new RailroadLayer(game, eventBus, transformHandler, uiState),
+    new SupplyOverlayLayer(game, userSettings),
     new CoordinateGridLayer(game, eventBus, transformHandler),
     structureLayer,
     samRadiusLayer,

@@ -102,7 +102,7 @@ export class TrainExecution implements Execution {
   }
 
   tick(ticks: number): void {
-    if (this.train === null) {
+    if (this.train === null || this.mg === null) {
       throw new Error("Not initialized");
     }
 
@@ -110,6 +110,9 @@ export class TrainExecution implements Execution {
       this.deleteTrain();
       return;
     }
+
+    const supplyFactor = this.mg.playerSupplyFactor(this.player);
+    this.speed = Math.max(1, Math.round(2 * supplyFactor));
 
     const tile = this.getNextTile();
     if (tile) {
