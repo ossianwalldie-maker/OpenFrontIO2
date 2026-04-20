@@ -3,6 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { assetUrl } from "../../../core/AssetUrls";
 import { EventBus } from "../../../core/EventBus";
 import { Gold } from "../../../core/game/Game";
+import { ProductionLineView } from "../../../core/game/GameUpdates";
 import { GameView } from "../../../core/game/GameView";
 import { UserSettings } from "../../../core/game/UserSettings";
 import { ClientID } from "../../../core/Schemas";
@@ -41,6 +42,8 @@ export class ControlPanel extends LitElement implements Layer {
 
   @state()
   private _attackingTroops: number = 0;
+  @state() private _productionLines: ProductionLineView[] = [];
+  @state() private _throughputModifier = 1;
 
   private _troopRateIsIncreasing: boolean = true;
 
@@ -95,7 +98,43 @@ export class ControlPanel extends LitElement implements Layer {
       .map((a) => a.troops)
       .reduce((a, b) => a + b, 0);
     this.troopRate = this.game.config().troopIncreaseRate(player) * 10;
+    this._productionLines = player.productionLines();
+    this._throughputModifier = player.productionThroughputModifier();
     this.requestUpdate();
+  }
+
+  private renderProductionPanel() {
+    const fmtCategory = (category: string): string =>
+      category === "navalComponents"
+        ? "Naval"
+        : category === "missileParts"
+          ? "Missile"
+          : category[0]!.toUpperCase() + category.slice(1);
+    return html`
+      <div
+        class="mt-1 border border-gray-600 rounded-md bg-gray-900/60 p-1 text-[11px] text-slate-200"
+      >
+        <div class="flex justify-between text-slate-100 font-semibold mb-0.5">
+          <span>Production Lines</span>
+          <span
+            class="${this._throughputModifier < 1
+              ? "text-orange-300"
+              : "text-green-300"}"
+            >Throughput x${this._throughputModifier.toFixed(2)}</span
+          >
+        </div>
+        ${this._productionLines.map(
+          (line) => html`
+            <div class="grid grid-cols-[4.6rem_3.2rem_2.8rem_2.2rem] gap-1">
+              <span>${fmtCategory(line.category)}</span>
+              <span>D:${line.deficit}</span>
+              <span>Q:${line.queue}</span>
+              <span>ETA:${line.etaTicks ?? "-"}</span>
+            </div>
+          `,
+        )}
+      </div>
+    `;
   }
 
   private updateTroopIncrease() {
@@ -329,6 +368,7 @@ export class ControlPanel extends LitElement implements Layer {
           class="flex-1 h-1.5 accent-blue-500 cursor-pointer"
         />
       </div>
+      ${this.renderProductionPanel()}
     `;
   }
 
@@ -377,6 +417,7 @@ export class ControlPanel extends LitElement implements Layer {
           />
         </div>
       </div>
+      ${this.renderProductionPanel()}
     `;
   }
 

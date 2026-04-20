@@ -46,8 +46,11 @@ import { andFN, manhattanDistFN, TileRef } from "./GameMap";
 import {
   AllianceView,
   AttackUpdate,
+  EquipmentCategory,
   GameUpdateType,
   PlayerUpdate,
+  ProductionLineView,
+  ProductionStateView,
 } from "./GameUpdates";
 import {
   bestShoreDeploymentSource,
@@ -104,6 +107,19 @@ export class PlayerImpl implements Player {
 
   private _spawnTile: TileRef | undefined;
   private _isDisconnected = false;
+  private _stockpile: Record<EquipmentCategory, number> = {
+    infantry: 80,
+    artillery: 30,
+    navalComponents: 40,
+    missileParts: 30,
+  };
+  private _factoryCarry: Record<EquipmentCategory, number> = {
+    infantry: 0,
+    artillery: 0,
+    navalComponents: 0,
+    missileParts: 0,
+  };
+  private _throughputDisruptedUntilTick = -1;
 
   constructor(
     private mg: GameImpl,
@@ -180,6 +196,7 @@ export class PlayerImpl implements Player {
       betrayals: this._betrayalCount,
       lastDeleteUnitTick: this.lastDeleteUnitTick,
       isLobbyCreator: this.isLobbyCreator(),
+      production: this.productionState(),
     };
   }
 
@@ -945,6 +962,43 @@ export class PlayerImpl implements Player {
     return Number(toRemove);
   }
 
+  productionState(): ProductionStateView {
+    const lines = this.computeProductionLines();
+    return {
+      stockpile: { ...this._stockpile },
+      throughputModifier: this.currentThroughputModifier(),
+      disruptedTicksRemaining: Math.max(
+        0,
+        this._throughputDisruptedUntilTick - this.mg.ticks(),
+      ),
+      lines,
+    };
+  }
+
+  registerProductionDisruption(ticks: number): void {
+    this._throughputDisruptedUntilTick = Math.max(
+      this._throughputDisruptedUntilTick,
+      this.mg.ticks() + Math.max(0, ticks),
+    );
+  }
+
+  processFactoryQueues(): void {
+    const lines = this.computeProductionLines();
+    const baseFactoryThroughput = 1;
+    for (const line of lines) {
+      if (line.queue <= 0 || line.assignedFactories <= 0) continue;
+      const gain =
+        line.assignedFactories *
+        baseFactoryThroughput *
+        this.currentThroughputModifier();
+      const total = this._factoryCarry[line.category] + gain;
+      const completed = Math.floor(total);
+      this._factoryCarry[line.category] = total - completed;
+      if (completed <= 0) continue;
+      this._stockpile[line.category] += Math.min(completed, line.queue);
+    }
+  }
+
   captureUnit(unit: Unit): void {
     if (unit.owner() === this) {
       throw new Error(`Cannot capture unit, ${this} already owns ${unit}`);
@@ -963,6 +1017,7 @@ export class PlayerImpl implements Player {
       );
     }
 
+    this.consumeEquipmentForUnit(type, 1);
     const cost = this.mg.unitInfo(type).cost(this.mg, this);
     const b = new UnitImpl(
       type,
@@ -1019,6 +1074,9 @@ export class PlayerImpl implements Player {
     if (this._gold < cost) {
       return false;
     }
+    if (!this.hasEquipmentForUnit(unitType, 1)) {
+      return false;
+    }
     if (unitType !== UnitType.MIRVWarhead && !this.isAlive()) {
       return false;
     }
@@ -1056,10 +1114,132 @@ export class PlayerImpl implements Player {
   }
 
   upgradeUnit(unit: Unit) {
+    this.consumeEquipmentForUnit(unit.type(), 1);
     const cost = this.mg.unitInfo(unit.type()).cost(this.mg, this);
     this.removeGold(cost);
     unit.increaseLevel();
     this.recordUnitConstructed(unit.type());
+  }
+
+  private equipmentCostForUnit(
+    type: UnitType,
+    amount: number,
+  ): { category: EquipmentCategory; amount: number } | null {
+    const perLevel: Partial<Record<UnitType, number>> = {
+      [UnitType.City]: 2,
+      [UnitType.DefensePost]: 3,
+      [UnitType.SAMLauncher]: 2,
+      [UnitType.Factory]: 2,
+      [UnitType.Warship]: 6,
+      [UnitType.TransportShip]: 3,
+      [UnitType.Port]: 4,
+      [UnitType.TradeShip]: 2,
+      [UnitType.MissileSilo]: 5,
+      [UnitType.AtomBomb]: 5,
+      [UnitType.HydrogenBomb]: 9,
+      [UnitType.MIRV]: 10,
+      [UnitType.MIRVWarhead]: 3,
+    };
+    const categoryByType: Partial<Record<UnitType, EquipmentCategory>> = {
+      [UnitType.City]: "infantry",
+      [UnitType.DefensePost]: "infantry",
+      [UnitType.SAMLauncher]: "infantry",
+      [UnitType.Factory]: "artillery",
+      [UnitType.Warship]: "artillery",
+      [UnitType.TransportShip]: "navalComponents",
+      [UnitType.Port]: "navalComponents",
+      [UnitType.TradeShip]: "navalComponents",
+      [UnitType.MissileSilo]: "missileParts",
+      [UnitType.AtomBomb]: "missileParts",
+      [UnitType.HydrogenBomb]: "missileParts",
+      [UnitType.MIRV]: "missileParts",
+      [UnitType.MIRVWarhead]: "missileParts",
+    };
+    const base = perLevel[type];
+    const category = categoryByType[type];
+    if (!base || !category) return null;
+    return { category, amount: base * amount };
+  }
+
+  private hasEquipmentForUnit(type: UnitType, amount: number): boolean {
+    const cost = this.equipmentCostForUnit(type, amount);
+    if (!cost) return true;
+    return this._stockpile[cost.category] >= cost.amount;
+  }
+
+  private consumeEquipmentForUnit(type: UnitType, amount: number): void {
+    const cost = this.equipmentCostForUnit(type, amount);
+    if (!cost) return;
+    this._stockpile[cost.category] = Math.max(
+      0,
+      this._stockpile[cost.category] - cost.amount,
+    );
+  }
+
+  private currentThroughputModifier(): number {
+    return this.mg.ticks() < this._throughputDisruptedUntilTick ? 0.5 : 1;
+  }
+
+  private computeProductionLines(): ProductionLineView[] {
+    const factoryCount = this.units(UnitType.Factory).filter(
+      (u) => u.isActive() && !u.isUnderConstruction(),
+    ).length;
+    const targets: Record<EquipmentCategory, number> = {
+      infantry: 100 + Math.floor(this.numTilesOwned() * 0.35),
+      artillery: 40 + this.unitCount(UnitType.Warship) * 8,
+      navalComponents:
+        30 +
+        (this.unitCount(UnitType.Port) + this.unitCount(UnitType.Warship)) * 6,
+      missileParts:
+        20 +
+        this.unitCount(UnitType.MissileSilo) * 10 +
+        this.units(UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.MIRV)
+          .length *
+          12,
+    };
+    const order: EquipmentCategory[] = [
+      "infantry",
+      "artillery",
+      "navalComponents",
+      "missileParts",
+    ];
+    const deficits = order.map((c) =>
+      Math.max(0, targets[c] - this._stockpile[c]),
+    );
+    const totalDeficit = deficits.reduce((a, b) => a + b, 0);
+    let remaining = factoryCount;
+    const assigned = new Map<EquipmentCategory, number>();
+    order.forEach((c, i) => {
+      const share =
+        totalDeficit > 0
+          ? Math.floor((factoryCount * deficits[i]) / totalDeficit)
+          : Math.floor(factoryCount / order.length);
+      assigned.set(c, Math.max(0, share));
+      remaining -= share;
+    });
+    let idx = 0;
+    while (remaining > 0) {
+      const c = order[idx % order.length]!;
+      assigned.set(c, (assigned.get(c) ?? 0) + 1);
+      remaining--;
+      idx++;
+    }
+    return order.map((category) => {
+      const queue = Math.max(0, targets[category] - this._stockpile[category]);
+      const throughputPerTick =
+        (assigned.get(category) ?? 0) * this.currentThroughputModifier();
+      return {
+        category,
+        assignedFactories: assigned.get(category) ?? 0,
+        throughputPerTick,
+        queue,
+        deficit: queue,
+        etaTicks:
+          queue <= 0 || throughputPerTick <= 0
+            ? null
+            : Math.ceil(queue / throughputPerTick),
+      };
+    });
   }
 
   public buildableUnits(
