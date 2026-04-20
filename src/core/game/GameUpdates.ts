@@ -161,6 +161,28 @@ export interface AttackUpdate {
   retreating: boolean;
 }
 
+export type EquipmentCategory =
+  | "infantry"
+  | "artillery"
+  | "navalComponents"
+  | "missileParts";
+
+export interface ProductionLineView {
+  category: EquipmentCategory;
+  assignedFactories: number;
+  throughputPerTick: number;
+  queue: number;
+  deficit: number;
+  etaTicks: number | null;
+}
+
+export interface ProductionStateView {
+  stockpile: Record<EquipmentCategory, number>;
+  throughputModifier: number;
+  disruptedTicksRemaining: number;
+  lines: ProductionLineView[];
+}
+
 export interface PlayerUpdate {
   type: GameUpdateType.Player;
   nameViewData?: NameViewData;
@@ -190,6 +212,7 @@ export interface PlayerUpdate {
   betrayals: number;
   lastDeleteUnitTick: Tick;
   isLobbyCreator: boolean;
+  production: ProductionStateView;
 }
 
 export interface AllianceView {

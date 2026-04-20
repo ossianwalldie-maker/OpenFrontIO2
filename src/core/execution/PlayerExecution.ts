@@ -74,6 +74,8 @@ export class PlayerExecution implements Execution {
       return;
     }
 
+    const troopInc = this.config.troopIncreaseRate(this.player);
+    this.player.processFactoryQueues();
     const supplyFactor = this.mg.playerSupplyFactor(this.player);
     const troopInc = this.config.troopIncreaseRate(this.player) * supplyFactor;
     this.player.addTroops(troopInc);

@@ -700,6 +700,24 @@ export interface Player {
   setTroops(troops: number): void;
   addTroops(troops: number): void;
   removeTroops(troops: number): number;
+  productionState(): {
+    stockpile: Record<
+      "infantry" | "artillery" | "navalComponents" | "missileParts",
+      number
+    >;
+    throughputModifier: number;
+    disruptedTicksRemaining: number;
+    lines: {
+      category: "infantry" | "artillery" | "navalComponents" | "missileParts";
+      assignedFactories: number;
+      throughputPerTick: number;
+      queue: number;
+      deficit: number;
+      etaTicks: number | null;
+    }[];
+  };
+  processFactoryQueues(): void;
+  registerProductionDisruption(ticks: number): void;
 
   // Units
   units(...types: UnitType[]): Unit[];

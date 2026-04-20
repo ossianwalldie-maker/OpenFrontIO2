@@ -292,6 +292,13 @@ export class UnitImpl implements Unit {
         case UnitType.Factory:
           this.mg.stats().unitDestroy(destroyer, this._type);
           this.mg.stats().unitLose(this.owner(), this._type);
+          if (
+            this._type === UnitType.Factory ||
+            this._type === UnitType.Port ||
+            this._type === UnitType.City
+          ) {
+            this.owner().registerProductionDisruption(150);
+          }
           break;
       }
     }

@@ -31,9 +31,11 @@ import { GameMap, TileRef } from "./GameMap";
 import {
   AllianceView,
   AttackUpdate,
+  EquipmentCategory,
   GameUpdateType,
   GameUpdateViewData,
   PlayerUpdate,
+  ProductionLineView,
   UnitUpdate,
 } from "./GameUpdates";
 import { MotionPlanRecord, unpackMotionPlans } from "./MotionPlans";
@@ -115,6 +117,7 @@ export class UnitView {
   troops(): number {
     return this.data.troops;
   }
+
   retreating(): boolean {
     if (this.type() !== UnitType.TransportShip) {
       throw Error("Must be a transport ship");
@@ -513,6 +516,18 @@ export class PlayerView {
 
   troops(): number {
     return this.data.troops;
+  }
+
+  stockpile(): Record<EquipmentCategory, number> {
+    return this.data.production.stockpile;
+  }
+
+  productionLines(): ProductionLineView[] {
+    return this.data.production.lines;
+  }
+
+  productionThroughputModifier(): number {
+    return this.data.production.throughputModifier;
   }
 
   totalUnitLevels(type: UnitType): number {
