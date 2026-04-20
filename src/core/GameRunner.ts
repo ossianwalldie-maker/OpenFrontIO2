@@ -25,6 +25,7 @@ import { GameMapLoader } from "./game/GameMapLoader";
 import { ErrorUpdate, GameUpdateViewData } from "./game/GameUpdates";
 import { createNationsForGame } from "./game/NationCreation";
 import { loadTerrainMap as loadGameMap } from "./game/TerrainMapLoader";
+import { BattlePlannerService } from "./planner/BattlePlannerService";
 import { PseudoRandom } from "./PseudoRandom";
 import { ClientID, GameStartInfo, Turn } from "./Schemas";
 import { simpleHash } from "./Util";
@@ -83,6 +84,7 @@ export class GameRunner {
   private turns: Turn[] = [];
   private currTurn = 0;
   private isExecuting = false;
+  private battlePlanner = new BattlePlannerService();
 
   private playerViewData: Record<PlayerID, NameViewData> = {};
 
@@ -125,8 +127,14 @@ export class GameRunner {
     }
     this.isExecuting = true;
 
+    const turn = this.turns[this.currTurn];
+    this.battlePlanner.ingestTurnIntents(turn.intents);
+    const generatedPlanIntents = this.battlePlanner.generateIntents(this.game);
     this.game.addExecution(
-      ...this.execManager.createExecs(this.turns[this.currTurn]),
+      ...this.execManager.createExecs({
+        ...turn,
+        intents: [...turn.intents, ...generatedPlanIntents],
+      }),
     );
     this.currTurn++;
 
