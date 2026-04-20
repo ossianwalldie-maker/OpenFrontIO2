@@ -18,6 +18,7 @@ import { DiplomacyPanel } from "./layers/DiplomacyPanel";
 import { DynamicUILayer } from "./layers/DynamicUILayer";
 import { EmojiTable } from "./layers/EmojiTable";
 import { EventsDisplay } from "./layers/EventsDisplay";
+import { FrontlinePlannerLayer } from "./layers/FrontlinePlannerLayer";
 import { FxLayer } from "./layers/FxLayer";
 import { GameLeftSidebar } from "./layers/GameLeftSidebar";
 import { GameRightSidebar } from "./layers/GameRightSidebar";
@@ -40,6 +41,7 @@ import { SettingsModal } from "./layers/SettingsModal";
 import { SpawnTimer } from "./layers/SpawnTimer";
 import { StructureIconsLayer } from "./layers/StructureIconsLayer";
 import { StructureLayer } from "./layers/StructureLayer";
+import { SupplyOverlayLayer } from "./layers/SupplyOverlayLayer";
 import { TeamStats } from "./layers/TeamStats";
 import { TerrainLayer } from "./layers/TerrainLayer";
 import { TerritoryLayer } from "./layers/TerritoryLayer";
@@ -62,6 +64,7 @@ export function createRenderer(
     overlappingRailroads: [],
     ghostRailPaths: [],
     rocketDirectionUp: true,
+    isPlanningFrontline: false,
   };
 
   //hide when the game renders
@@ -286,6 +289,7 @@ export function createRenderer(
     new TerrainLayer(game, transformHandler),
     new TerritoryLayer(game, eventBus, transformHandler),
     new RailroadLayer(game, eventBus, transformHandler, uiState),
+    new SupplyOverlayLayer(game, userSettings),
     new CoordinateGridLayer(game, eventBus, transformHandler),
     structureLayer,
     samRadiusLayer,
@@ -293,6 +297,7 @@ export function createRenderer(
     new FxLayer(game, eventBus, transformHandler),
     new UILayer(game, eventBus, transformHandler),
     new NukeTrajectoryPreviewLayer(game, eventBus, transformHandler, uiState),
+    new FrontlinePlannerLayer(game, eventBus, transformHandler, uiState),
     new StructureIconsLayer(game, eventBus, uiState, transformHandler),
     new DynamicUILayer(game, transformHandler, eventBus),
     new NameLayer(game, transformHandler, eventBus),

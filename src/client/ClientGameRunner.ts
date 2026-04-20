@@ -553,7 +553,11 @@ export class ClientGameRunner {
   }
 
   private inputEvent(event: MouseUpEvent) {
-    if (!this.isActive || this.renderer.uiState.ghostStructure !== null) {
+    if (
+      !this.isActive ||
+      this.renderer.uiState.ghostStructure !== null ||
+      this.renderer.uiState.isPlanningFrontline
+    ) {
       return;
     }
     const cell = this.renderer.transformHandler.screenToWorldCoordinates(

@@ -53,6 +53,11 @@ import { RailNetwork } from "./RailNetwork";
 import { createRailNetwork } from "./RailNetworkImpl";
 import { Stats } from "./Stats";
 import { StatsImpl } from "./StatsImpl";
+import {
+  computeSupplySnapshot,
+  createInitialSupplySnapshot,
+  SupplySnapshot,
+} from "./SupplySystem";
 import { assignTeams } from "./TeamAssignment";
 import { TerraNulliusImpl } from "./TerraNulliusImpl";
 import { UnitGrid, UnitPredicate } from "./UnitGrid";
@@ -126,6 +131,7 @@ export class GameImpl implements Game {
   public guarantees: DiplomacyGuaranteeView[] = [];
   public nonAggressionPacts: NonAggressionPactView[] = [];
   public warGoals = new Map<PlayerID, WarGoalProgressView[]>();
+  private _supplySnapshot: SupplySnapshot;
 
   constructor(
     private _humans: PlayerInfo[],
@@ -149,6 +155,9 @@ export class GameImpl implements Game {
       _config.disableNavMesh(),
     );
     this._sharedWaterCache = new SharedWaterCache(this);
+    this._supplySnapshot = createInitialSupplySnapshot(
+      this._width * this._height,
+    );
 
     if (_config.gameConfig().gameMode === GameMode.Team) {
       this.populateTeams();
@@ -474,6 +483,9 @@ export class GameImpl implements Game {
     }
     // Flush pending water conversions + throttled graph rebuild
     const waterChangedTiles = this._waterManager.tick(this._ticks);
+    if (this._ticks % 10 === 0) {
+      this.updateSupplySnapshot();
+    }
     for (const tile of waterChangedTiles) {
       this.recordTileUpdate(tile);
     }
@@ -1177,6 +1189,29 @@ export class GameImpl implements Game {
   }
   stats(): Stats {
     return this._stats;
+  }
+  supplySnapshot(): SupplySnapshot {
+    return this._supplySnapshot;
+  }
+  supplyAt(tile: TileRef): number {
+    return (this._supplySnapshot.values[tile] ?? 0) / 255;
+  }
+  playerSupplyFactor(player: Player): number {
+    const avg = this._supplySnapshot.playerAverage[player.id()] ?? 0;
+    return Math.max(0.35, Math.min(1, 0.35 + avg * 0.65));
+  }
+  playerOutOfSupplyTiles(player: Player): number {
+    return this._supplySnapshot.playerOutOfSupplyTiles[player.id()] ?? 0;
+  }
+  private updateSupplySnapshot(): void {
+    this._supplySnapshot = computeSupplySnapshot(this);
+    this.addUpdate({
+      type: GameUpdateType.SupplySnapshot,
+      tick: this._supplySnapshot.tick,
+      values: this._supplySnapshot.values,
+      playerAverage: this._supplySnapshot.playerAverage,
+      playerOutOfSupplyTiles: this._supplySnapshot.playerOutOfSupplyTiles,
+    });
   }
   railNetwork(): RailNetwork {
     return this._railNetwork;

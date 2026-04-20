@@ -159,6 +159,10 @@ export class Executor {
           type: "cancel_non_aggression_pact",
           recipientID: intent.recipient,
         });
+      case "create_battle_plan":
+      case "update_battle_plan":
+      case "execute_battle_plan":
+        return new NoOpExecution();
       default:
         throw new Error(`intent type ${intent} not found`);
     }

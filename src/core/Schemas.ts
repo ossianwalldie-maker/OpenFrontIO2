@@ -59,6 +59,9 @@ export type Intent =
   | RevokeGuaranteeIntent
   | ProposeNonAggressionPactIntent
   | CancelNonAggressionPactIntent;
+  | CreateBattlePlanIntent
+  | UpdateBattlePlanIntent
+  | ExecuteBattlePlanIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -106,6 +109,16 @@ export type ProposeNonAggressionPactIntent = z.infer<
 export type CancelNonAggressionPactIntent = z.infer<
   typeof CancelNonAggressionPactIntentSchema
 >;
+export type CreateBattlePlanIntent = z.infer<
+  typeof CreateBattlePlanIntentSchema
+>;
+export type UpdateBattlePlanIntent = z.infer<
+  typeof UpdateBattlePlanIntentSchema
+>;
+export type ExecuteBattlePlanIntent = z.infer<
+  typeof ExecuteBattlePlanIntentSchema
+>;
+export type Stance = z.infer<typeof StanceSchema>;
 
 export type Turn = z.infer<typeof TurnSchema>;
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -526,6 +539,29 @@ export const ProposeNonAggressionPactIntentSchema = z.object({
 export const CancelNonAggressionPactIntentSchema = z.object({
   type: z.literal("cancel_non_aggression_pact"),
   recipient: ID,
+export const StanceSchema = z.enum(["aggressive", "balanced", "cautious"]);
+
+const BattlePlanPayloadSchema = z.object({
+  planId: z.string().min(1).max(64),
+  frontline: z.array(z.number().int().nonnegative()).min(1),
+  armyGroupIds: z.array(z.string().min(1).max(64)).min(1),
+  stance: StanceSchema,
+});
+
+export const CreateBattlePlanIntentSchema = z.object({
+  type: z.literal("create_battle_plan"),
+  ...BattlePlanPayloadSchema.shape,
+});
+
+export const UpdateBattlePlanIntentSchema = z.object({
+  type: z.literal("update_battle_plan"),
+  ...BattlePlanPayloadSchema.shape,
+});
+
+export const ExecuteBattlePlanIntentSchema = z.object({
+  type: z.literal("execute_battle_plan"),
+  planId: z.string().min(1).max(64),
+  action: z.enum(["execute", "pause"]),
 });
 
 const IntentSchema = z.discriminatedUnion("type", [
@@ -561,6 +597,9 @@ const IntentSchema = z.discriminatedUnion("type", [
   RevokeGuaranteeIntentSchema,
   ProposeNonAggressionPactIntentSchema,
   CancelNonAggressionPactIntentSchema,
+  CreateBattlePlanIntentSchema,
+  UpdateBattlePlanIntentSchema,
+  ExecuteBattlePlanIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

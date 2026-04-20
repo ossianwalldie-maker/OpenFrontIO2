@@ -19,10 +19,12 @@ import {
   ClientPingMessage,
   ClientRejoinMessage,
   ClientSendWinnerMessage,
+  CreateBattlePlanIntent,
   GameConfig,
   Intent,
   ServerMessage,
   ServerMessageSchema,
+  Stance,
   Winner,
 } from "../core/Schemas";
 import { replacer } from "../core/Util";
@@ -195,6 +197,31 @@ export class SendCancelNAPIntentEvent implements GameEvent {
   constructor(public readonly recipient: PlayerView) {}
 }
 
+export class SendCreateBattlePlanIntentEvent implements GameEvent {
+  constructor(
+    public readonly planId: string,
+    public readonly frontline: TileRef[],
+    public readonly armyGroupIds: string[],
+    public readonly stance: Stance,
+  ) {}
+}
+
+export class SendUpdateBattlePlanIntentEvent implements GameEvent {
+  constructor(
+    public readonly planId: string,
+    public readonly frontline: TileRef[],
+    public readonly armyGroupIds: string[],
+    public readonly stance: Stance,
+  ) {}
+}
+
+export class SendExecuteBattlePlanIntentEvent implements GameEvent {
+  constructor(
+    public readonly planId: string,
+    public readonly action: "execute" | "pause",
+  ) {}
+}
+
 export class Transport {
   private socket: WebSocket | null = null;
 
@@ -322,6 +349,14 @@ export class Transport {
         type: "cancel_non_aggression_pact",
         recipient: e.recipient.id(),
       }),
+    this.eventBus.on(SendCreateBattlePlanIntentEvent, (e) =>
+      this.onSendCreateBattlePlanIntent(e),
+    );
+    this.eventBus.on(SendUpdateBattlePlanIntentEvent, (e) =>
+      this.onSendUpdateBattlePlanIntent(e),
+    );
+    this.eventBus.on(SendExecuteBattlePlanIntentEvent, (e) =>
+      this.onSendExecuteBattlePlanIntent(e),
     );
   }
 
@@ -702,6 +737,36 @@ export class Transport {
     this.sendIntent({
       type: "update_game_config",
       config: event.config,
+    });
+  }
+
+  private onSendCreateBattlePlanIntent(event: SendCreateBattlePlanIntentEvent) {
+    this.sendIntent({
+      type: "create_battle_plan",
+      planId: event.planId,
+      frontline: event.frontline,
+      armyGroupIds: event.armyGroupIds,
+      stance: event.stance,
+    } satisfies CreateBattlePlanIntent);
+  }
+
+  private onSendUpdateBattlePlanIntent(event: SendUpdateBattlePlanIntentEvent) {
+    this.sendIntent({
+      type: "update_battle_plan",
+      planId: event.planId,
+      frontline: event.frontline,
+      armyGroupIds: event.armyGroupIds,
+      stance: event.stance,
+    });
+  }
+
+  private onSendExecuteBattlePlanIntent(
+    event: SendExecuteBattlePlanIntentEvent,
+  ) {
+    this.sendIntent({
+      type: "execute_battle_plan",
+      planId: event.planId,
+      action: event.action,
     });
   }
 

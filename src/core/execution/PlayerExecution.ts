@@ -3,6 +3,7 @@ import {
   Cell,
   Execution,
   Game,
+  MessageType,
   Player,
   Structures,
   UnitType,
@@ -73,8 +74,21 @@ export class PlayerExecution implements Execution {
       return;
     }
 
-    const troopInc = this.config.troopIncreaseRate(this.player);
+    const supplyFactor = this.mg.playerSupplyFactor(this.player);
+    const troopInc = this.config.troopIncreaseRate(this.player) * supplyFactor;
     this.player.addTroops(troopInc);
+    if (ticks % 50 === 0) {
+      const outOfSupply = this.mg.playerOutOfSupplyTiles(this.player);
+      if (outOfSupply > 0) {
+        this.mg.displayMessage(
+          "events_display.out_of_supply",
+          MessageType.ATTACK_FAILED,
+          this.player.id(),
+          undefined,
+          { tiles: outOfSupply },
+        );
+      }
+    }
     const goldFromWorkers = this.config.goldAdditionRate(this.player);
     this.player.addGold(goldFromWorkers);
 
