@@ -17,6 +17,7 @@ import { CoordinateGridLayer } from "./layers/CoordinateGridLayer";
 import { DynamicUILayer } from "./layers/DynamicUILayer";
 import { EmojiTable } from "./layers/EmojiTable";
 import { EventsDisplay } from "./layers/EventsDisplay";
+import { FrontlinePlannerLayer } from "./layers/FrontlinePlannerLayer";
 import { FxLayer } from "./layers/FxLayer";
 import { GameLeftSidebar } from "./layers/GameLeftSidebar";
 import { GameRightSidebar } from "./layers/GameRightSidebar";
@@ -61,6 +62,7 @@ export function createRenderer(
     overlappingRailroads: [],
     ghostRailPaths: [],
     rocketDirectionUp: true,
+    isPlanningFrontline: false,
   };
 
   //hide when the game renders
@@ -282,6 +284,7 @@ export function createRenderer(
     new FxLayer(game, eventBus, transformHandler),
     new UILayer(game, eventBus, transformHandler),
     new NukeTrajectoryPreviewLayer(game, eventBus, transformHandler, uiState),
+    new FrontlinePlannerLayer(game, eventBus, transformHandler, uiState),
     new StructureIconsLayer(game, eventBus, uiState, transformHandler),
     new DynamicUILayer(game, transformHandler, eventBus),
     new NameLayer(game, transformHandler, eventBus),

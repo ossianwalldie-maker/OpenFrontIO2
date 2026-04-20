@@ -4,10 +4,24 @@ import { assetUrl } from "../../../core/AssetUrls";
 import { EventBus } from "../../../core/EventBus";
 import { GameType } from "../../../core/game/Game";
 import { GameView } from "../../../core/game/GameView";
+import { Stance } from "../../../core/Schemas";
 import { crazyGamesSDK } from "../../CrazyGamesSDK";
 import { TogglePauseIntentEvent } from "../../InputHandler";
-import { PauseGameIntentEvent, SendWinnerEvent } from "../../Transport";
+import {
+  PauseGameIntentEvent,
+  SendCreateBattlePlanIntentEvent,
+  SendExecuteBattlePlanIntentEvent,
+  SendUpdateBattlePlanIntentEvent,
+  SendWinnerEvent,
+} from "../../Transport";
 import { translateText } from "../../Utils";
+import {
+  PlannerClearFrontlineEvent,
+  PlannerEditModeEvent,
+  PlannerFrontlineChangedEvent,
+  PlannerProgressEvent,
+  PlannerUndoFrontlineEvent,
+} from "./FrontlinePlannerLayer";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
 import { Layer } from "./Layer";
 import { ShowReplayPanelEvent } from "./ReplayPanel";
@@ -38,6 +52,20 @@ export class GameRightSidebar extends LitElement implements Layer {
 
   @state()
   private timer: number = 0;
+  @state()
+  private plannerEditing = false;
+  @state()
+  private plannerFrontline: number[] = [];
+  @state()
+  private plannerStance: Stance = "balanced";
+  @state()
+  private plannerArmyGroups = "army-group-1";
+  @state()
+  private plannerExecuting = false;
+  @state()
+  private plannerProgress = 0;
+  @state()
+  private plannerHasSavedPlan = false;
 
   private hasWinner = false;
   private isLobbyCreator = false;
@@ -74,6 +102,15 @@ export class GameRightSidebar extends LitElement implements Layer {
         this._isSinglePlayer || this.game?.config()?.isReplay();
       if (isReplayOrSingleplayer || this.isLobbyCreator) {
         this.onPauseButtonClick();
+      }
+    });
+    this.eventBus.on(PlannerFrontlineChangedEvent, (e) => {
+      this.plannerFrontline = e.frontline;
+    });
+    this.eventBus.on(PlannerProgressEvent, (e) => {
+      this.plannerProgress = e.percent;
+      if (e.frontlineSize === 0) {
+        this.plannerExecuting = false;
       }
     });
 
@@ -207,6 +244,59 @@ export class GameRightSidebar extends LitElement implements Layer {
         <div class="cursor-pointer" @click=${this.onExitButtonClick}>
           <img src=${exitIcon} alt="exit" width="20" height="20" />
         </div>
+        <div class="border-l border-white/20 h-5"></div>
+        <button
+          class="text-xs px-2 py-1 rounded bg-amber-600/90"
+          @click=${this.togglePlannerEditing}
+        >
+          ${this.plannerEditing ? "Stop Front Draw" : "Draw Front"}
+        </button>
+        <button
+          class="text-xs px-2 py-1 rounded bg-gray-700"
+          @click=${this.undoFrontline}
+        >
+          Undo
+        </button>
+        <button
+          class="text-xs px-2 py-1 rounded bg-gray-700"
+          @click=${this.clearFrontline}
+        >
+          Clear
+        </button>
+        <select
+          class="text-xs text-black rounded px-1 py-1"
+          .value=${this.plannerStance}
+          @change=${(e: Event) =>
+            (this.plannerStance = (e.target as HTMLSelectElement)
+              .value as Stance)}
+        >
+          <option value="aggressive">Aggressive</option>
+          <option value="balanced">Balanced</option>
+          <option value="cautious">Cautious</option>
+        </select>
+        <input
+          class="text-xs text-black rounded px-1 py-1 w-28"
+          .value=${this.plannerArmyGroups}
+          @input=${(e: Event) =>
+            (this.plannerArmyGroups = (e.target as HTMLInputElement).value)}
+          placeholder="army groups csv"
+        />
+        <button
+          class="text-xs px-2 py-1 rounded bg-blue-600"
+          @click=${() => this.persistPlan(!this.plannerHasSavedPlan)}
+        >
+          Save Plan
+        </button>
+        <button
+          class=${`text-xs px-2 py-1 rounded ${this.plannerExecuting ? "bg-red-600" : "bg-green-600"}`}
+          @click=${this.togglePlanExecution}
+        >
+          ${this.plannerExecuting ? "Pause Plan" : "Execute Plan"}
+        </button>
+        <div class="text-xs text-white/80">
+          Front: ${this.plannerFrontline.length} • Progress:
+          ${this.plannerProgress}%
+        </div>
       </aside>
     `;
   }
@@ -242,5 +332,53 @@ export class GameRightSidebar extends LitElement implements Layer {
           `
         : ""}
     `;
+  }
+
+  private togglePlannerEditing() {
+    this.plannerEditing = !this.plannerEditing;
+    this.eventBus.emit(new PlannerEditModeEvent(this.plannerEditing));
+  }
+
+  private clearFrontline() {
+    this.eventBus.emit(new PlannerClearFrontlineEvent());
+  }
+
+  private undoFrontline() {
+    this.eventBus.emit(new PlannerUndoFrontlineEvent());
+  }
+
+  private persistPlan(create: boolean) {
+    if (this.plannerFrontline.length === 0) {
+      return;
+    }
+    const groups = this.plannerArmyGroups
+      .split(",")
+      .map((g) => g.trim())
+      .filter(Boolean);
+    const event = create
+      ? new SendCreateBattlePlanIntentEvent(
+          "primary-front",
+          this.plannerFrontline,
+          groups.length > 0 ? groups : ["army-group-1"],
+          this.plannerStance,
+        )
+      : new SendUpdateBattlePlanIntentEvent(
+          "primary-front",
+          this.plannerFrontline,
+          groups.length > 0 ? groups : ["army-group-1"],
+          this.plannerStance,
+        );
+    this.eventBus.emit(event);
+    this.plannerHasSavedPlan = true;
+  }
+
+  private togglePlanExecution() {
+    this.plannerExecuting = !this.plannerExecuting;
+    this.eventBus.emit(
+      new SendExecuteBattlePlanIntentEvent(
+        "primary-front",
+        this.plannerExecuting ? "execute" : "pause",
+      ),
+    );
   }
 }

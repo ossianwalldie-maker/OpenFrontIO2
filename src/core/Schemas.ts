@@ -50,7 +50,10 @@ export type Intent =
   | DeleteUnitIntent
   | KickPlayerIntent
   | TogglePauseIntent
-  | UpdateGameConfigIntent;
+  | UpdateGameConfigIntent
+  | CreateBattlePlanIntent
+  | UpdateBattlePlanIntent
+  | ExecuteBattlePlanIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -84,6 +87,16 @@ export type TogglePauseIntent = z.infer<typeof TogglePauseIntentSchema>;
 export type UpdateGameConfigIntent = z.infer<
   typeof UpdateGameConfigIntentSchema
 >;
+export type CreateBattlePlanIntent = z.infer<
+  typeof CreateBattlePlanIntentSchema
+>;
+export type UpdateBattlePlanIntent = z.infer<
+  typeof UpdateBattlePlanIntentSchema
+>;
+export type ExecuteBattlePlanIntent = z.infer<
+  typeof ExecuteBattlePlanIntentSchema
+>;
+export type Stance = z.infer<typeof StanceSchema>;
 
 export type Turn = z.infer<typeof TurnSchema>;
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -453,6 +466,31 @@ export const UpdateGameConfigIntentSchema = z.object({
   config: GameConfigSchema.partial(),
 });
 
+export const StanceSchema = z.enum(["aggressive", "balanced", "cautious"]);
+
+const BattlePlanPayloadSchema = z.object({
+  planId: z.string().min(1).max(64),
+  frontline: z.array(z.number().int().nonnegative()).min(1),
+  armyGroupIds: z.array(z.string().min(1).max(64)).min(1),
+  stance: StanceSchema,
+});
+
+export const CreateBattlePlanIntentSchema = z.object({
+  type: z.literal("create_battle_plan"),
+  ...BattlePlanPayloadSchema.shape,
+});
+
+export const UpdateBattlePlanIntentSchema = z.object({
+  type: z.literal("update_battle_plan"),
+  ...BattlePlanPayloadSchema.shape,
+});
+
+export const ExecuteBattlePlanIntentSchema = z.object({
+  type: z.literal("execute_battle_plan"),
+  planId: z.string().min(1).max(64),
+  action: z.enum(["execute", "pause"]),
+});
+
 const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -478,6 +516,9 @@ const IntentSchema = z.discriminatedUnion("type", [
   KickPlayerIntentSchema,
   TogglePauseIntentSchema,
   UpdateGameConfigIntentSchema,
+  CreateBattlePlanIntentSchema,
+  UpdateBattlePlanIntentSchema,
+  ExecuteBattlePlanIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)
