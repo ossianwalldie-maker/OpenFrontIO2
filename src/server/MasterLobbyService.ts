@@ -87,6 +87,7 @@ export class MasterLobbyService {
       ffa: [],
       team: [],
       special: [],
+      grand_strategy: [],
     };
 
     for (const lobby of lobbies) {
