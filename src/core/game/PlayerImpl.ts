@@ -180,6 +180,21 @@ export class PlayerImpl implements Player {
       betrayals: this._betrayalCount,
       lastDeleteUnitTick: this.lastDeleteUnitTick,
       isLobbyCreator: this.isLobbyCreator(),
+      diplomacy: {
+        globalTension: this.mg.globalTension,
+        factionID: [...this.mg.diplomacyFactions.entries()].find(([, f]) =>
+          f.members.has(this.id()),
+        )?.[0],
+        factionInvites: [...(this.mg.factionInvites.get(this.id()) ?? [])],
+        guarantees: this.mg.guarantees.filter(
+          (g) => g.guarantorID === this.id() || g.beneficiaryID === this.id(),
+        ),
+        pacts: this.mg.nonAggressionPacts.filter(
+          (p) => p.playerA === this.id() || p.playerB === this.id(),
+        ),
+        warGoals: this.mg.warGoals.get(this.id()) ?? [],
+        factions: this.mg.diplomacyFactionsView(),
+      },
     };
   }
 
@@ -1398,6 +1413,16 @@ export class PlayerImpl implements Player {
     player: Player,
     treatAFKFriendly: boolean = false,
   ): boolean {
+    const hasActivePact = this.mg.nonAggressionPacts.some(
+      (p) =>
+        p.expiresAt > this.mg.ticks() &&
+        ((p.playerA === this.id() && p.playerB === player.id()) ||
+          (p.playerA === player.id() && p.playerB === this.id())),
+    );
+    if (hasActivePact) {
+      return false;
+    }
+
     if (this.type() === PlayerType.Bot) {
       // Bots are not affected by immunity
       return !this.isFriendly(player, treatAFKFriendly);

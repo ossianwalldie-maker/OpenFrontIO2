@@ -39,7 +39,14 @@ import {
   UnitType,
 } from "./Game";
 import { GameMap, TileRef } from "./GameMap";
-import { GameUpdate, GameUpdateType } from "./GameUpdates";
+import {
+  DiplomacyFactionView,
+  DiplomacyGuaranteeView,
+  GameUpdate,
+  GameUpdateType,
+  NonAggressionPactView,
+  WarGoalProgressView,
+} from "./GameUpdates";
 import { MotionPlanRecord, packMotionPlans } from "./MotionPlans";
 import { PlayerImpl } from "./PlayerImpl";
 import { RailNetwork } from "./RailNetwork";
@@ -110,6 +117,15 @@ export class GameImpl implements Game {
   private _waterManager: WaterManager;
   private _sharedWaterCache: SharedWaterCache;
   private _teamGameSpawnAreas: TeamGameSpawnAreas | undefined;
+  public globalTension = 0;
+  public diplomacyFactions = new Map<
+    string,
+    { name: string; leaderID: PlayerID; members: Set<PlayerID> }
+  >();
+  public factionInvites = new Map<PlayerID, Set<string>>();
+  public guarantees: DiplomacyGuaranteeView[] = [];
+  public nonAggressionPacts: NonAggressionPactView[] = [];
+  public warGoals = new Map<PlayerID, WarGoalProgressView[]>();
 
   constructor(
     private _humans: PlayerInfo[],
@@ -142,6 +158,15 @@ export class GameImpl implements Game {
     console.log(
       `[GameImpl] Constructor total: ${(performance.now() - constructorStart).toFixed(0)}ms`,
     );
+  }
+
+  diplomacyFactionsView(): DiplomacyFactionView[] {
+    return [...this.diplomacyFactions.entries()].map(([id, faction]) => ({
+      id,
+      name: faction.name,
+      leaderID: faction.leaderID,
+      members: [...faction.members],
+    }));
   }
 
   private populateTeams() {
