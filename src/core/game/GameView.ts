@@ -664,6 +664,9 @@ export class GameView implements GameMap {
   private _units = new Map<number, UnitView>();
   private updatedTiles: TileRef[] = [];
   private updatedTerrainTiles: TileRef[] = [];
+  private supplyValues: Uint8Array = new Uint8Array(0);
+  private supplyAverages: Record<string, number> = {};
+  private supplyOutOfSupplyTiles: Record<string, number> = {};
 
   private _myPlayer: PlayerView | null = null;
 
@@ -698,6 +701,7 @@ export class GameView implements GameMap {
   ) {
     this._map = this._mapData.gameMap;
     this.lastUpdate = null;
+    this.supplyValues = new Uint8Array(this._map.width() * this._map.height());
     this.unitGrid = new UnitGrid(this._map);
     this._cosmetics = new Map(
       humans.map((h) => [h.clientID, h.cosmetics ?? {}]),
@@ -712,6 +716,19 @@ export class GameView implements GameMap {
 
   isOnEdgeOfMap(ref: TileRef): boolean {
     return this._map.isOnEdgeOfMap(ref);
+  }
+
+  public supplyAt(tile: TileRef): number {
+    return (this.supplyValues[tile] ?? 0) / 255;
+  }
+
+  public playerSupplyFactor(player: PlayerView): number {
+    const avg = this.supplyAverages[player.id()] ?? 0;
+    return Math.max(0.35, Math.min(1, 0.35 + avg * 0.65));
+  }
+
+  public playerOutOfSupplyTiles(player: PlayerView): number {
+    return this.supplyOutOfSupplyTiles[player.id()] ?? 0;
   }
 
   public updatesSinceLastTick(): GameUpdates | null {
@@ -860,6 +877,13 @@ export class GameView implements GameMap {
         this.clearTrainPlanForUnit(unit.id());
       }
     });
+
+    const supplyUpdate = gu.updates[GameUpdateType.SupplySnapshot].at(-1);
+    if (supplyUpdate) {
+      this.supplyValues = supplyUpdate.values;
+      this.supplyAverages = supplyUpdate.playerAverage;
+      this.supplyOutOfSupplyTiles = supplyUpdate.playerOutOfSupplyTiles;
+    }
 
     this.advanceMotionPlannedUnits(gu.tick);
     this.rebuildMotionPlannedUnitIdsCacheIfDirty();

@@ -13,6 +13,7 @@ import {
 import { MotionPlanRecord } from "./MotionPlans";
 import { RailNetwork } from "./RailNetwork";
 import { Stats } from "./Stats";
+import { SupplySnapshot } from "./SupplySystem";
 import { UnitPredicate } from "./UnitGrid";
 
 function isEnumValue<T extends Record<string, string | number>>(
@@ -934,6 +935,11 @@ export interface Game extends GameMap {
 
   numTilesWithFallout(): number;
   stats(): Stats;
+
+  supplySnapshot(): SupplySnapshot;
+  supplyAt(tile: TileRef): number;
+  playerSupplyFactor(player: Player): number;
+  playerOutOfSupplyTiles(player: Player): number;
 
   addUpdate(update: GameUpdate): void;
   railNetwork(): RailNetwork;

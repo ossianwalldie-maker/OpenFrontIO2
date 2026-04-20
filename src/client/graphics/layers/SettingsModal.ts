@@ -169,6 +169,11 @@ export class SettingsModal extends LitElement implements Layer {
     this.requestUpdate();
   }
 
+  private onToggleSupplyOverlayButtonClick() {
+    this.userSettings.toggleSupplyOverlay();
+    this.requestUpdate();
+  }
+
   private onTogglePerformanceOverlayButtonClick() {
     this.userSettings.togglePerformanceOverlay();
     this.requestUpdate();
@@ -431,6 +436,24 @@ export class SettingsModal extends LitElement implements Layer {
               </div>
               <div class="text-sm text-slate-400">
                 ${this.userSettings.attackingTroopsOverlay()
+                  ? translateText("user_setting.on")
+                  : translateText("user_setting.off")}
+              </div>
+            </button>
+
+            <button
+              class="flex gap-3 items-center w-full text-left p-3 hover:bg-slate-700 rounded-sm text-white transition-colors"
+              @click="${this.onToggleSupplyOverlayButtonClick}"
+            >
+              <img src=${sirenIcon} alt="supplyIcon" width="20" height="20" />
+              <div class="flex-1">
+                <div class="font-medium">Supply overlay</div>
+                <div class="text-sm text-slate-400">
+                  Show tile supply and out-of-supply areas.
+                </div>
+              </div>
+              <div class="text-sm text-slate-400">
+                ${this.userSettings.supplyOverlay()
                   ? translateText("user_setting.on")
                   : translateText("user_setting.off")}
               </div>
