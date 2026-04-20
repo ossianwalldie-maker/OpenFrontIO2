@@ -16,6 +16,12 @@ import { NationAllianceBehavior } from "./nation/NationAllianceBehavior";
 import { NationEmojiBehavior } from "./nation/NationEmojiBehavior";
 import { NationMIRVBehavior } from "./nation/NationMIRVBehavior";
 import { NationNukeBehavior } from "./nation/NationNukeBehavior";
+import {
+  AiProfilePreset,
+  computeThreatAssessment,
+  NationStrategyController,
+  StrategyTickTelemetry,
+} from "./nation/NationStrategyController";
 import { NationStructureBehavior } from "./nation/NationStructureBehavior";
 import { NationWarshipBehavior } from "./nation/NationWarshipBehavior";
 import { SpawnExecution } from "./SpawnExecution";
@@ -36,6 +42,8 @@ export class NationExecution implements Execution {
   private player: Player | null = null;
 
   private attackRate: number;
+  private aiProfile!: AiProfilePreset;
+  private strategyController!: NationStrategyController;
   private attackTick: number;
   private triggerRatio: number;
   private reserveRatio: number;
@@ -57,7 +65,13 @@ export class NationExecution implements Execution {
 
   init(mg: Game) {
     this.mg = mg;
+    this.aiProfile = this.selectProfilePreset();
+    this.applyProfileTuning();
     this.attackRate = this.getAttackRate();
+    this.strategyController = new NationStrategyController(
+      this.aiProfile,
+      (chance) => this.random.chance(chance),
+    );
     this.attackTick = this.random.nextInt(0, this.attackRate);
 
     if (!this.mg.hasPlayer(this.nation.playerInfo.id)) {
@@ -69,15 +83,21 @@ export class NationExecution implements Execution {
 
   private getAttackRate(): number {
     const { difficulty } = this.mg.config().gameConfig();
+    const multiplier = NationStrategyController.profileTuning(
+      this.aiProfile,
+    ).attackRateMultiplier;
+    const tuned = (min: number, max: number): number =>
+      Math.max(1, Math.round(this.random.nextInt(min, max) * multiplier));
+
     switch (difficulty) {
       case Difficulty.Easy:
-        return this.random.nextInt(65, 80); // Slower reactions
+        return tuned(65, 80); // Slower reactions
       case Difficulty.Medium:
-        return this.random.nextInt(55, 70);
+        return tuned(55, 70);
       case Difficulty.Hard:
-        return this.random.nextInt(45, 60);
+        return tuned(45, 60);
       case Difficulty.Impossible:
-        return this.random.nextInt(30, 50); // Faster reactions
+        return tuned(30, 50); // Faster reactions
       default:
         assertNever(difficulty);
     }
@@ -177,15 +197,26 @@ export class NationExecution implements Execution {
 
     this.emojiBehavior.maybeSendCasualEmoji();
     this.updateRelationsFromEmbargos();
-    this.allianceBehavior.handleAllianceRequests();
-    this.allianceBehavior.handleAllianceExtensionRequests();
-    this.mirvBehavior.considerMIRV();
-    this.structureBehavior.handleStructures();
-    this.warshipBehavior.maybeSpawnWarship();
-    this.handleEmbargoesToHostileNations();
-    this.attackBehavior.maybeAttack();
-    this.warshipBehavior.counterWarshipInfestation();
-    this.nukeBehavior.maybeSendNuke();
+    this.strategyController.runTick({
+      tick: ticks,
+      difficulty: this.mg.config().gameConfig().difficulty,
+      player: this.player,
+      assessThreat: () =>
+        computeThreatAssessment(this.mg, this.player as Player),
+      executeAlliance: () => {
+        this.allianceBehavior.handleAllianceRequests();
+        this.allianceBehavior.handleAllianceExtensionRequests();
+      },
+      executeMIRV: () => this.mirvBehavior.considerMIRV(),
+      executeStructures: () => this.structureBehavior.handleStructures(),
+      executeWarshipSpawn: () => this.warshipBehavior.maybeSpawnWarship(),
+      executeEmbargoes: () => this.handleEmbargoesToHostileNations(),
+      executeAttack: () => this.attackBehavior.maybeAttack(),
+      executeCounterWarships: () =>
+        this.warshipBehavior.counterWarshipInfestation(),
+      executeNuke: () => this.nukeBehavior.maybeSendNuke(),
+      reportTelemetry: (telemetry) => this.reportTelemetry(telemetry),
+    });
   }
 
   private initializeBehaviors(): void {
@@ -237,6 +268,42 @@ export class NationExecution implements Execution {
       this.player,
     );
     this.behaviorsInitialized = true;
+  }
+
+  private applyProfileTuning(): void {
+    const profileTuning = NationStrategyController.profileTuning(
+      this.aiProfile,
+    );
+    this.triggerRatio = profileTuning.triggerRatio;
+    this.reserveRatio = profileTuning.reserveRatio;
+    this.expandRatio = profileTuning.expandRatio;
+  }
+
+  private selectProfilePreset(): AiProfilePreset {
+    const nationName = this.nation.playerInfo.name.toLowerCase();
+    if (nationName.includes("nav") || nationName.includes("island")) {
+      return AiProfilePreset.AggressiveNaval;
+    }
+    if (nationName.includes("empire") || nationName.includes("kingdom")) {
+      return AiProfilePreset.Historical;
+    }
+    const roll = this.random.nextInt(0, 100);
+    if (roll < 25) return AiProfilePreset.AggressiveNaval;
+    if (roll < 50) return AiProfilePreset.TurtleIndustry;
+    if (roll < 75) return AiProfilePreset.ExpansionistFront;
+    return AiProfilePreset.Historical;
+  }
+
+  private reportTelemetry(telemetry: StrategyTickTelemetry): void {
+    const aiDebugEnabled =
+      (globalThis as { __OPENFRONT_AI_DEBUG__?: boolean })
+        .__OPENFRONT_AI_DEBUG__ === true;
+    if (!aiDebugEnabled) return;
+
+    console.debug(
+      `[AI:${this.player?.name() ?? "unknown"}] tick=${telemetry.tick} profile=${telemetry.profile} objective=${telemetry.objective}` +
+        ` threat=${JSON.stringify(telemetry.threat)} plan=${JSON.stringify(telemetry.plan)}`,
+    );
   }
 
   private randomSpawnLand(): TileRef | null {
