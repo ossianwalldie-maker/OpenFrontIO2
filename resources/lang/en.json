@@ -501,6 +501,7 @@
     "teams_title": "Teams",
     "teams_count": "{teamCount} teams",
     "teams_of": "{teamCount} teams of {playersPerTeam}",
+    "grand_strategy_title": "Grand Strategy",
     "ranked_title": "Ranked",
     "ranked_1v1_title": "1v1",
     "ranked_2v2_title": "2v2",

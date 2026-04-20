@@ -164,11 +164,15 @@ export class MapPlaylist {
     ffa: [],
     special: [],
     team: [],
+    grand_strategy: [],
   };
 
   public async gameConfig(type: PublicGameType): Promise<GameConfig> {
     if (type === "special") {
       return this.getSpecialConfig();
+    }
+    if (type === "grand_strategy") {
+      return this.getGrandStrategyConfig();
     }
 
     const mode = type === "ffa" ? GameMode.FFA : GameMode.Team;
@@ -440,6 +444,37 @@ export class MapPlaylist {
       bots: isCompact ? 100 : 400,
       spawnImmunityDuration: 30 * 10,
       disabledUnits: [],
+    } satisfies GameConfig;
+  }
+
+  private async getGrandStrategyConfig(): Promise<GameConfig> {
+    const mode = GameMode.FFA;
+    const map = this.getNextMap("grand_strategy");
+    const isCompact = false;
+
+    return {
+      donateGold: false,
+      donateTroops: false,
+      gameMap: map,
+      maxPlayers: await this.lobbyMaxPlayers(map, mode, undefined, isCompact),
+      gameType: GameType.Public,
+      gameMapSize: GameMapSize.Normal,
+      difficulty: Difficulty.Medium,
+      infiniteGold: false,
+      infiniteTroops: false,
+      maxTimerValue: 90,
+      instantBuild: false,
+      randomSpawn: false,
+      nations: "default",
+      gameMode: mode,
+      bots: 400,
+      spawnImmunityDuration: 8 * 60 * 10,
+      disabledUnits: [],
+      tickPacingMultiplier: 1.5,
+      supplyEnabled: true,
+      productionEnabled: true,
+      warGoalDiplomacyEnabled: true,
+      checkpointIntervalMinutes: 15,
     } satisfies GameConfig;
   }
 

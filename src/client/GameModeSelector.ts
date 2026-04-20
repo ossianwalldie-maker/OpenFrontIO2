@@ -111,6 +111,7 @@ export class GameModeSelector extends LitElement {
     const ffa = this.lobbies?.games?.["ffa"]?.[0];
     const teams = this.lobbies?.games?.["team"]?.[0];
     const special = this.lobbies?.games?.["special"]?.[0];
+    const grandStrategy = this.lobbies?.games?.["grand_strategy"]?.[0];
 
     return html`
       <div class="flex flex-col gap-4 w-full px-4 sm:px-0 mx-auto pb-4 sm:pb-0">
@@ -153,11 +154,19 @@ export class GameModeSelector extends LitElement {
               </div>`
             : nothing}
 
-          <!-- Right col: special + teams (desktop only) -->
+          <!-- Right col: special + grand strategy + teams (desktop only) -->
           <div class="hidden sm:flex sm:flex-col sm:gap-4">
             ${special
               ? html`<div class="flex-1 min-h-0">
                   ${this.renderSpecialLobbyCard(special)}
+                </div>`
+              : nothing}
+            ${grandStrategy
+              ? html`<div class="flex-1 min-h-0">
+                  ${this.renderLobbyCard(
+                    grandStrategy,
+                    this.getLobbyTitle(grandStrategy),
+                  )}
                 </div>`
               : nothing}
             ${teams
@@ -167,9 +176,17 @@ export class GameModeSelector extends LitElement {
               : nothing}
           </div>
 
-          <!-- Mobile: special, ffa, teams inline -->
+          <!-- Mobile: special, grand strategy, ffa, teams inline -->
           <div class="sm:hidden">
             ${special ? this.renderSpecialLobbyCard(special) : nothing}
+          </div>
+          <div class="sm:hidden">
+            ${grandStrategy
+              ? this.renderLobbyCard(
+                  grandStrategy,
+                  this.getLobbyTitle(grandStrategy),
+                )
+              : nothing}
           </div>
           <div class="sm:hidden">
             ${ffa
@@ -388,6 +405,10 @@ export class GameModeSelector extends LitElement {
   }
 
   private getLobbyTitle(lobby: PublicGameInfo): string {
+    if (lobby.publicGameType === "grand_strategy") {
+      return translateText("mode_selector.grand_strategy_title");
+    }
+
     const config = lobby.gameConfig!;
     if (config.gameMode === GameMode.FFA) {
       return translateText("game_mode.ffa");
