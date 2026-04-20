@@ -220,6 +220,7 @@ export class AttackExecution implements Execution {
       throw new Error("Attack not initialized");
     }
     let troopCount = this.attack.troops(); // cache troop count
+    const ownerSupplyFactor = this.mg.playerSupplyFactor(this._owner);
     const targetIsPlayer = this.target.isPlayer(); // cache target type
     const targetPlayer = targetIsPlayer ? (this.target as Player) : null; // cache target player
 
@@ -256,6 +257,10 @@ export class AttackExecution implements Execution {
         this.target,
         this.attack.borderSize() + this.random.nextInt(0, 5),
       );
+    numTilesPerTick = Math.max(
+      1,
+      Math.floor(numTilesPerTick * ownerSupplyFactor),
+    );
 
     while (numTilesPerTick > 0) {
       if (troopCount < 1) {
@@ -296,11 +301,16 @@ export class AttackExecution implements Execution {
           this.target,
           tileToConquer,
         );
+      const defenderSupplyFactor = this.mg.supplyAt(tileToConquer);
+      const adjustedAttackerLoss =
+        attackerTroopLoss * (1 + (1 - ownerSupplyFactor) * 0.8);
+      const adjustedDefenderLoss =
+        defenderTroopLoss * (0.6 + (1 - defenderSupplyFactor) * 0.8);
       numTilesPerTick -= tilesPerTickUsed;
-      troopCount -= attackerTroopLoss;
+      troopCount -= adjustedAttackerLoss;
       this.attack.setTroops(troopCount);
       if (targetPlayer) {
-        targetPlayer.removeTroops(defenderTroopLoss);
+        targetPlayer.removeTroops(adjustedDefenderLoss);
       }
       this._owner.conquer(tileToConquer);
       this.handleDeadDefender();
